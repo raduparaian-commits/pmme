@@ -1,21 +1,31 @@
-from kalshi import list_open_markets, get_orderbook
+from kalshi import list_markets_by_series, get_orderbook
 
-markets = list_open_markets(limit=200)
+markets = list_markets_by_series("KXBTCD", limit=50)
+print(f"Found {len(markets)} markets in series")
 
-candidates = [
-    m for m in markets
-    if "MVE" not in m["ticker"]
-    and (m["yes_ask_dollars"] != "0.0000" or m["yes_bid_dollars"] != "0.0000")
-]
+for m in markets:
+    print(m["ticker"], m["yes_ask_dollars"], m["yes_bid_dollars"], m["status"])
 
-print(f"Found {len(candidates)} candidates out of {len(markets)} markets")
+from kalshi import list_markets_by_series, get_orderbook
 
-if not candidates:
-    print("Still nothing — printing first 5 raw tickers to see what's actually there")
-    for m in markets[:5]:
-        print(m["ticker"], m["yes_ask_dollars"], m["yes_bid_dollars"], m["status"])
-else:
-    ticker = candidates[0]["ticker"]
-    print("Using ticker:", ticker)
-    book = get_orderbook(ticker)
-    print(book)
+markets = list_markets_by_series("KXBTCD", limit=50)
+ticker = markets[0]["ticker"]
+print("Using ticker:", ticker)
+
+book = get_orderbook(ticker)
+print(book)
+
+from kalshi import list_markets_by_series, derive_ask_levels
+
+markets = list_markets_by_series("KXBTCD", limit=50)
+
+for m in markets:
+    ticker = m["ticker"]
+    levels = derive_ask_levels(ticker)
+    yes_asks, no_asks = levels["yes_asks"], levels["no_asks"]
+
+    if not yes_asks or not no_asks:
+        continue  # one-sided market, skip
+
+    gross_edge = 1.0 - (yes_asks[0][0] + no_asks[0][0])
+    print(f"{ticker}: YES ask={yes_asks[0][0]}, NO ask={no_asks[0][0]}, gross edge={gross_edge:.4f}")
